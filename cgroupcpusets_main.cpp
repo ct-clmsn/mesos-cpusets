@@ -35,7 +35,8 @@ int main(int argc, char** argv) {
     write(pipe_a[1], &curpid, sizeof(pid_t));
 
     close(pipe_b[1]);
-    read(pipe_b[0], &flag, sizeof(int));
+    while(read(pipe_b[0], &flag, sizeof(int))) {
+    }
 
     sleep(10);
 
@@ -46,7 +47,7 @@ int main(int argc, char** argv) {
     int status;
     pid_t chld_pid, w;
     close(pipe_a[1]);
-    read(pipe_a[0], &chld_pid, sizeof(pid_t));
+    while(read(pipe_a[0], &chld_pid, sizeof(pid_t))) {}
     printf("child pid_t\t%d\n", chld_pid);
 
     Try<std::vector<int> > cpuset_mems = get_cpuset_mems();
@@ -82,7 +83,7 @@ int main(int argc, char** argv) {
     } while (!WIFEXITED(status) && !WIFSIGNALED(status));
 
     int val = 1;
-    read(pipe_a[0], &val, sizeof(int)); 
+    while(read(pipe_a[0], &val, sizeof(int))) { }
   }
 
   return 1;
