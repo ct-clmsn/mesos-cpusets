@@ -1,0 +1,53 @@
+Cpusets Mesos Module 
+
+---
+
+Mesos currently supports cgroup cpushare functionality.
+According to GNU/Linux kernel and Mesos documentation 
+(cpushare.hpp) cgroup cpushare functionality serves to, 
+
+"Use the Linux cpu cgroup controller for cpu isolation 
+which uses the Completely Fair Scheduler (CFS).
+
+ - cpushare implements proportionally weighted 
+   scheduling.
+
+ - cfs implements hard quota based scheduling."
+
+The cpu cgroup controller informs timesharing "cpu 
+isolation" of the cpu amongst Mesos-instantiated 
+processes.
+
+This isolator aims to provide functionality that 
+further constrains the Mesos cpu isolation story by 
+pinning tasks to a set of cpu cores. This is 
+achieved using the cgroups cpusets functionality.
+
+Processing pinning or "binding" can, in some cases, 
+mitigate performance penalties associated with process 
+migration - a situation in which the GNU/Linux kernel 
+may decide to move a process from one cpu core to 
+another.
+
+This isolator provides the ability to schedule gpu-
+constrained tasks to cpu cores that have low latency 
+to the ePCI bus.
+
+The scheduling algorithm makes use of a modified
+version of the submodular optimization technique 
+described in, "A Class of Submodular Functions for 
+Document Summarization" by Lin and Bilmes.
+
+This module was developed to improve performance of 
+Mesos instantiated processes that are multithreaded 
+and cpu-constrained. 
+
+Note - buyer beware!
+
+This isolator may not be suitable for general purpose
+Mesos utilization.
+
+This isolator may be suitable for heterogeneous cloud 
+environments in which some nodes have gpu resources or
+large core counts.
+
