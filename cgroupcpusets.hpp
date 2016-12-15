@@ -53,5 +53,7 @@ Try<Nothing> assign_cpuset_group_mems(
 Try<std::map<int, int> > get_cpuset_cpu_utilization(
   const std::vector<std::string>& cpuset_groups );
 
+Try<double> get_cpu_max_shares(); 
+
 #endif
 

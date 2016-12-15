@@ -14,6 +14,8 @@ int main(int argc, char** argv) {
     std::cout << *i << std::endl;
   }
 
+  std::cout << get_cpu_max_shares().get() << std::endl;
+
   int pipe_a[2], pipe_b[2], pipe_c[2];
 
   pipe(pipe_a);

@@ -353,3 +353,26 @@ Try<std::map<int, int> > get_cpuset_cpu_utilization(const std::vector<std::strin
   return cpuset_util;
 }
 
+Try<double> get_cpu_max_shares() {
+  const std::string cpusharesfile = "/sys/fs/cgroup/cpu/cpu.shares";
+
+  std::ifstream fileistr(cpusharesfile);
+
+  // parsing code for the cpuset.cpus file...
+  // assumes structure found in testfile-testfile4
+  //
+  std::string fline;
+
+  if(fileistr.is_open()) {
+    std::getline(fileistr, fline);
+    const size_t endpos = fline.find_last_not_of(" \t\n");
+    if( std::string::npos != endpos ) {
+      fline = fline.substr( 0, endpos+1 );
+    }
+
+    return std::stod(fline);
+  }
+
+  return 0.0;
+}
+

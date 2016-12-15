@@ -30,8 +30,11 @@ public:
 
     std::set<int> cpuset_to_assign;
     if(ngpus_req > 0.0) {
+
+      const double ncpus = static_cast<double>(loc.nCores()) * ncpus_req;
+
       SubmodularScheduler<CudaTopologyResourceInformationPolicy> scheduler;
-      scheduler(cpuset_to_assign, ncpus_req, ngpus_req);
+      scheduler(cpuset_to_assign, ncpus, ngpus_req);
     }
     else {
       SubmodularScheduler<CpuTopologyResourceInformationPolicy> scheduler;
