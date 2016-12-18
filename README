@@ -51,3 +51,8 @@ This isolator may be suitable for heterogeneous cloud
 environments in which some nodes have gpu resources or
 large core counts.
 
+Future work/support plan
+
+implement a small set of scheduling algorithms that 
+can support a variety of workloads.
+
