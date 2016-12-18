@@ -49,6 +49,7 @@
 #include <vector>
 #include <iterator>
 #include <cmath>
+#include <random>
 
 #include "stout/foreach.hpp"
 
@@ -65,36 +66,48 @@ private:
 
   std::set<int> U, V;
 
+  float C(
+    const std::valarray<float>& weights,
+    const std::set<int>& S,
+    const int i) {
+
+    const float ret = std::accumulate(std::begin(S), std::end(S), 0.0,
+      [&weights, i] (int j, int k) {
+        return weights[i, j] + weights[i, k];
+      });
+
+    return ret;
+  }
+
+  // similarity function
+  float L(
+    const std::valarray<float>& weights,
+    const std::set<int>& S,
+    const float alpha = 1.0) {
+
+    std::set<int> Vcpy = V;
+    std::vector<float> Vvec;
+
+    for(auto i : S) {
+      std::vector<float> cvec = { C(weights, S, i), alpha * C(weights, Vcpy, i) };
+      Vvec.push_back((*std::min_element(std::begin(cvec), std::end(cvec))));
+    } 
+
+    const float Lret = std::accumulate(std::begin(Vvec), std::end(Vvec), 0.0, std::plus<float>());
+    return Lret;
+  }
+
+  // coverage, "fidelity" function
   float f(
     const std::valarray<float>& weights, 
     std::set<int> S) {
 
-    float fscore = 0.0;
-    std::vector<int> diff;
-
-    std::set_difference(
-      V.begin(), V.end(),
-      S.begin(), S.end(),
-      std::inserter(diff, diff.begin()));
-
-    foreach(int core_i, diff) {
-      const float i_weight = weights[core_i];
-
-      foreach(int core_j, S) {
-        const float j_weight = weights[core_j];
-        float latency = getSimilarity(core_i, core_j); 
-        latency = (FP_ZERO == std::fpclassify(latency)) ? 1e-10 : latency;
-        fscore += ( (i_weight + j_weight) / latency );
-      }
-    }
-
-    return fscore;
+    return L(weights, S); // + lambda * R(weights, S);
   }
 
   static bool pair_cmp(
     std::pair<int, float> a,
     std::pair<int, float> b) {
-
     return (a.second < b.second);
   }
 
@@ -119,15 +132,11 @@ public:
 
   void operator()(
     std::set<int>& Gf,
-    const float B,
+    const float budget,
     const float r = 1.0,
     const float differenceEpsilon = 0.75) {
 
   const std::vector<int> nCores = getItems();
-  for(int i = 0; i < nCores.size(); i++) {
-    U.insert(nCores[i]);
-    V.insert(nCores[i]);
-  }
 
   // cost is the number of
   // tasks per core / total
@@ -136,6 +145,8 @@ public:
   std::valarray<float> cost =
     getCostVector();
 
+  const float B = cost.min() * budget;
+
   // num tasks per core weighted by num processing 
   // units (physical threads) per core
   //
@@ -143,6 +154,11 @@ public:
     getWeightVector();
 
   std::set<int> G;
+
+  for(int i = 0; i < nCores.size(); i++) {
+    U.insert(nCores[i]);
+    V.insert(nCores[i]);
+  }
 
   while(U.size() > 0) {
     std::vector< std::pair<int, float> > pick_k;
@@ -164,9 +180,9 @@ public:
     std::vector< std::pair<int, float> > cost_test;
     foreach(int obj_i, G) {
       const float ci = cost[obj_i];
-      const float k_element = cost[k_itr->first];
+      const float ck = cost[k_itr->first];
       cost_test.push_back(
-        std::make_pair(obj_i, ci + k_element)
+        std::make_pair(obj_i, ci + ck)
       );
     }
 
@@ -194,8 +210,17 @@ public:
     }
   }
 
+std::cout << B << std::endl;
+std::cout << vlist.size() << std::endl;
+for(auto x : vlist) {
+std::cout << x.first << "\t" << x.second << std::endl;
+}
+
   std::vector< pair<int, float> >::iterator vstar =
-    max_element(vlist.begin(), vlist.end(), pair_cmp);
+    std::max_element(vlist.begin(), vlist.end(), pair_cmp);
+
+  std::cout << "v\t" << V.size() << std::endl;
+  std::cout << "vstar\t" << vlist.size() << std::endl;
 
   std::set<int> vstarset;
   vstarset.insert(vstar->first);
