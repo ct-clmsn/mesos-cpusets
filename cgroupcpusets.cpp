@@ -301,6 +301,28 @@ Try<Nothing> assign_cpuset_group_mems(
   return Nothing();
 }
 
+int _get_cpuset_cpu_utilization(
+  const std::string& cpuset_path_str,
+  std::map<int, int>& cpuset_utilization )
+{
+  std::vector<int> cpus;
+
+  if(parse_os_index_file( cpuset_path_str , cpus ) != -1 ) {
+    std::for_each(
+      std::begin(cpus),
+      std::end(cpus),
+      [&cpuset_utilization] (int cpu) {
+        const int cpucount = cpuset_utilization.count(cpu);
+        cpuset_utilization[cpu] = cpucount ? (cpucount + 1) : 1;
+      });
+  }
+  else {
+    return -1;
+  }
+
+  return 1;
+}
+
 int get_cpuset_cpu_utilization(
   const std::string& cpuset_group, 
   std::map<int, int>& cpuset_utilization )
@@ -311,35 +333,42 @@ int get_cpuset_cpu_utilization(
     return -1;
   }
 
-  std::vector<int> cpus;
   const std::string cpuset_cpus_path = path::join(cpuset_dir_path, "cpuset.cpus");
 
   if(!os::exists(cpuset_cpus_path)) {
     return -1;
   }
 
-  if(parse_os_index_file( cpuset_cpus_path , cpus ) != -1 ) {
-    std::for_each(
-      std::begin(cpus),
-      std::end(cpus),
-      [&cpuset_utilization] (int cpu) {
-        cpuset_utilization[cpu] = cpuset_utilization.count(cpu) ? cpuset_utilization[cpu] + 1 : 1;
-      });
-  }
-  else {
-    return -1;
-  }
-  
-  return 1;
+  return _get_cpuset_cpu_utilization(cpuset_cpus_path, cpuset_utilization); 
 }
 
-Try<std::map<int, int> > get_cpuset_cpu_utilization(const std::vector<std::string>& cpuset_groups) {
+Try<std::map<int, int> > get_cpuset_cpu_utilization (
+  const std::vector<std::string>& cpuset_groups ) {
+
+  Try<std::vector<int> > cpus = get_cpuset_cpus();
+
+  if(cpus.isError()) {
+    return Error("could not get cpuset cpus");
+  }
+
   std::map<int,int> cpuset_util;
+
+  std::for_each(
+    std::begin(cpus.get()), 
+    std::end(cpus.get()), 
+
+    [&cpuset_util] (int cpu) {
+      if(cpuset_util.count(cpu) < 1) { 
+        cpuset_util.insert( std::make_pair(cpu, 1) ); 
+      }
+    });
+
   std::string error_msg;
 
   if(!std::any_of(
     std::begin(cpuset_groups),
     std::end(cpuset_groups),
+
     [&cpuset_util, &error_msg] (const std::string& cpuset_group) {
       if(get_cpuset_cpu_utilization(cpuset_group, cpuset_util) == -1) {
         error_msg = cpuset_group;

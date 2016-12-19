@@ -11,10 +11,12 @@ all:
 	$(CC) $(CFLAGS) cgroupcpusets.o cgroupcpusets_main.cpp -o cgroupcpusets_main
 	$(CC) $(CFLAGS) -fPIC -c HwlocTopology.cpp
 	$(CC) $(CFLAGS) -fPIC -c TopologyResourceInformation.cpp
-	$(CC) $(CFLAGS) submodularscheduler-test.cpp -o submodularscheduler_test
 	$(CC) $(CFLAGS) -fPIC -c CpusetAssigner.cpp 
 	$(CC) $(CFLAGS) -fPIC -c CpusetIsolator.cpp
 	$(CC) $(CFLAGS) -fPIC cgroupcpusets.o HwlocTopology.o TopologyResourceInformation.o CpusetAssigner.o CpusetIsolator.o -shared -o libCpusetIsolator.so 
+
+subtest:
+	$(CC) $(CFLAGS) -g submodularscheduler-test.cpp -o submodularscheduler_test
 
 clean:
 	rm cgroupcpusets.o HwlocTopology.o TopologyResourceInformation.o CpusetAssigner.o CpusetIsolator.o libCpusetIsolator.so

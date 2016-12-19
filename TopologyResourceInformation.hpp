@@ -117,12 +117,9 @@ public:
 
     costVec.resize(cpu_util_mat.size());
 
-    const int total_cpu_work = std::accumulate(std::begin(cpu_util_mat), std::end(cpu_util_mat), 0,
-      [] (int cpuATaskCount, std::pair<int, int> cpuB) { return cpuATaskCount + cpuB.second; });
-
     std::for_each(std::begin(cpu_util_mat), std::end(cpu_util_mat),
-      [&costVec, &cpu_util_mat, &total_cpu_work] (std::pair<int, int> cpu) {
-        costVec[cpu.first] = static_cast<float>(cpu.second) / static_cast<float>(total_cpu_work);
+      [&costVec, &cpu_util_mat] (std::pair<int, int> cpu) {
+        costVec[cpu.first] = static_cast<float>(cpu.second);
     });
 
     return costVec;
