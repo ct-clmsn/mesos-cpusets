@@ -117,7 +117,10 @@ public:
 
     costVec.resize(cpu_util_mat.size());
 
-    std::for_each(std::begin(cpu_util_mat), std::end(cpu_util_mat),
+    std::for_each(
+      std::begin(cpu_util_mat), 
+      std::end(cpu_util_mat),
+
       [&costVec, &cpu_util_mat] (std::pair<int, int> cpu) {
         costVec[cpu.first] = static_cast<float>(cpu.second);
     });
