@@ -210,17 +210,8 @@ public:
     }
   }
 
-std::cout << B << std::endl;
-std::cout << vlist.size() << std::endl;
-for(auto x : vlist) {
-std::cout << x.first << "\t" << x.second << std::endl;
-}
-
   std::vector< pair<int, float> >::iterator vstar =
     std::max_element(vlist.begin(), vlist.end(), pair_cmp);
-
-  std::cout << "v\t" << V.size() << std::endl;
-  std::cout << "vstar\t" << vlist.size() << std::endl;
 
   std::set<int> vstarset;
   vstarset.insert(vstar->first);
