@@ -58,7 +58,6 @@ using namespace std;
 template< typename IndexSetPolicy >
 class SubmodularScheduler : private IndexSetPolicy {
   using IndexSetPolicy::getItems;
-  using IndexSetPolicy::getSimilarity;
   using IndexSetPolicy::getCostVector;
   using IndexSetPolicy::getWeightVector;
 
@@ -181,6 +180,7 @@ public:
     foreach(int obj_i, G) {
       const float ci = cost[obj_i];
       const float ck = cost[k_itr->first];
+
       cost_test.push_back(
         std::make_pair(obj_i, ci + ck)
       );

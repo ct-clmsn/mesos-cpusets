@@ -47,6 +47,10 @@ process::Future<Option<mesos::slave::ContainerPrepareInfo>> CpusetIsolatorProces
   const std::string& directory,
   const Option<std::string>& user) {
 
+// scan /sys/fs/cgroup 
+// to identify the container id's
+//
+
 /*  if (promises.contains(containerId)) {
     return process::Failure("Container " + stringify(containerId) +
                             " has already been prepared");
@@ -81,14 +85,18 @@ process::Future<Nothing> CpusetIsolatorProcess::isolate(
 
   CpusetAssigner cpuSetAssigner;
 
-  cpuSetAssigner.assign(
+  process::Future<bool> assigned = cpuSetAssigner.assign(
     containerId,
     pid,
     cpus,
     0.0);
     //gpus);
 
-  return Nothing();
+  if(assigned.get()) {
+    return Nothing();
+  }
+
+  return process::Failure("unable to allocate requested # of cores");
 }
 
 
@@ -127,6 +135,10 @@ process::Future<mesos::ResourceStatistics> CpusetIsolatorProcess::usage(
                  << containerId << "'";
   }
 
+  // compute resource statistics
+  // make this contingent on cpus
+  // requested or available
+  //
   return mesos::ResourceStatistics();
 }
 
