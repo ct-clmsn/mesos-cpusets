@@ -5,6 +5,7 @@
 #include "TopologyResourceInformation.hpp"
 #include "SubmodularScheduler.hpp"
 
+#include <string>
 #include <vector>
 
 #include <mesos/resources.hpp>
@@ -15,6 +16,7 @@
 #include <process/process.hpp>
 
 #include <stout/try.hpp>
+#include <stout/path.hpp>
 
 class CpusetAssignerProcess : public process::Process<CpusetAssignerProcess> {
 
@@ -22,23 +24,29 @@ public:
   CpusetAssignerProcess() {
   }
 
+  ~CpusetAssignerProcess() {
+  }
+
   process::Future<bool> assign(
     const mesos::ContainerID& containerId,
     const pid_t pid,
-    const float ncpus_req,
-    const float ngpus_req) {
+    const double ncpus_req,
+    const double ngpus_req) {
 
+    const double ncpus = static_cast<double>(loc.nCores().get()) * ncpus_req;
     std::set<int> cpuset_to_assign;
+
     if(ngpus_req > 0.0) {
-
-      const double ncpus = static_cast<double>(loc.nCores().get()) * ncpus_req;
-
       SubmodularScheduler<CudaTopologyResourceInformationPolicy> scheduler;
       scheduler(cpuset_to_assign, ncpus, ngpus_req);
     }
     else {
       SubmodularScheduler<CpuTopologyResourceInformationPolicy> scheduler;
       scheduler(cpuset_to_assign, ncpus_req);
+    }
+
+    if(cpuset_to_assign.size() < ncpus_req) {
+      return false;
     }
 
     std::vector<int> cpuset;
@@ -55,6 +63,7 @@ public:
     assign_cpuset_group_mems(containerIdStr, cpumem);
     attach_cpuset_group_pid(containerIdStr, pid);
     
+    return true;
   }
 
   void randCpuAssigner(
@@ -62,7 +71,6 @@ public:
     const int coreReq);
 
 private:
-
   TopologyResourceInformation loc;
 
 };
