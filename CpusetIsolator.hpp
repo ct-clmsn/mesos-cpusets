@@ -49,6 +49,8 @@
 #include <stout/nothing.hpp>
 #include <stout/try.hpp>
 
+#include <leveldb/db.h>
+
 #include "CpusetAssigner.hpp"
 
 using namespace std;
@@ -62,6 +64,8 @@ class CpusetIsolatorProcess:
   public process::Process<CpusetIsolatorProcess>
 {
 public:
+  CpusetIsolatorProcess(const mesos::Parameters& parameters);
+
   process::Future<Nothing> recover(
       const std::list<mesos::slave::ContainerState>& states,
       const hashset<mesos::ContainerID>& orphans);
@@ -90,15 +94,18 @@ public:
       const mesos::ContainerID& containerId);
 
 private:
+  Result<Nothing> updateDb(const int cpusreq);
+
   process::Future<Nothing> _cleanup(
       const mesos::ContainerID& containerId);
 
-  const mesos::Parameters parameters;
+  mesos::Parameters params;
+
   hashmap<mesos::ContainerID, mesos::Resources> containerResources;
   hashmap<mesos::ContainerID, pid_t> pids;
 
-  leveldb::DB* db;
   process::TimeSeries<int> series;
+  leveldb::DB* db;
 
 };
 

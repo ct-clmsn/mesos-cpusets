@@ -21,6 +21,29 @@
 
 using namespace process;
 
+CpusetIsolatorProcess::CpusetIsolatorProcess(
+  const mesos::Parameters& parameters) 
+  : params(parameters) 
+{
+  leveldb::Options opts;
+  opts.create_if_missing = true;
+  leveldb::Status stat = leveldb::DB::Open(opts, path::join(dbpath, "cpusetiso.db"), &db);
+
+  if(!stat.ok()) {
+    perror("cpusetisolator failed to open and/or create db");
+    exit(-1);
+  }
+
+  std::string value;
+  stat = db->Get(leveldb::ReadOptions(), "startDtg", &value);
+
+  if(!stat.ok()) {
+    const process::Time cur_dtg = getCurrentTime();
+    stat = db->Put(leveldb::WriteOptions(), "startDtg", stringify(cur_dtg));
+  }
+
+}
+
 process::Future<Nothing> CpusetIsolatorProcess::recover(
   const list<mesos::slave::ContainerState>& states,
   const hashset<mesos::ContainerID>& orphans) {
@@ -47,10 +70,6 @@ process::Future<Option<mesos::slave::ContainerPrepareInfo>> CpusetIsolatorProces
   const std::string& directory,
   const Option<std::string>& user) {
 
-// scan /sys/fs/cgroup 
-// to identify the container id's
-//
-
 /*  if (promises.contains(containerId)) {
     return process::Failure("Container " + stringify(containerId) +
                             " has already been prepared");
@@ -65,15 +84,56 @@ process::Future<Option<mesos::slave::ContainerPrepareInfo>> CpusetIsolatorProces
 
 }
 
+static process::Time getCurrentTime() {
+  const Time now = Clock::now();
+  const Duration dnow = now.duration();
+  const double mins = ((dnow.mins() / timewindow.mins()) * timewindow.mins());
+
+  // compute user-defined window
+  //
+  Try<process::Time> tnowsec = process::Time::create(dnow.secs());
+  if(tnowsec.isError()) {
+    return process::Failure("invalid time");
+  }
+
+  // see if timeseries has a sample of nowsec sample
+  //
+  const process::Time nowsec = tnowsec.get();
+  return nowsec;
+}
+
+Result<Nothing> CpusetIsolatorProcess::updateDb(const int cpusreq) {
+  // see if timeseries has a sample of nowsec sample
+  //
+  const process::Time nowsec = getCurrentTime();
+  series.set(cpusreq, nowsec);
+
+  JSON::Array arr;
+  arr.values.reserve(series.get().size());
+  std::copy(std::begin(arr.values), std::end(arr.values), std::back_inserter(arr.values));
+
+  leveldb::WriteBatch batch;
+  batch.Put(stringify(nowsec), stringify(arr));
+  batch.Delete("latest");
+  batch.Put("latest", stringify(nowsec));
+
+  leveldb::Status s = db->Write(leveldb::WriteOptions(), &batch);
+  if(!s.ok()) {
+    return Result<Nothing>::error("failed to write to leveldb");
+  }
+
+  return Result<Nothing>::some(Nothing);
+}
+
 process::Future<Nothing> CpusetIsolatorProcess::isolate(
   const mesos::ContainerID& containerId,
   pid_t pid)
 {
-  if (!pids.contains(containerId)) {
+  if(!pids.contains(containerId)) {
     return Failure("Unknown container");
   }
 
-  if (!containerResources.contains(containerId)) {
+  if(!containerResources.contains(containerId)) {
     return Failure("Unknown container resources");
   }
 
@@ -81,22 +141,24 @@ process::Future<Nothing> CpusetIsolatorProcess::isolate(
   const double cpus = r.cpus().get();
   const double gpus = r.gpus().get();
 
+  updateDb(cpus);
+
   create_cpuset_group(containerId.value());
 
   CpusetAssigner cpuSetAssigner;
 
-  process::Future<bool> assigned = cpuSetAssigner.assign(
-    containerId,
-    pid,
-    cpus,
-    0.0);
-    //gpus);
+  process::Future<bool> assigned = 
+    cpuSetAssigner.assign(
+      containerId,
+      pid,
+      cpus,
+      gpus);
 
-  if(assigned.get()) {
-    return Nothing();
+  if(assigned.isFailed()) {
+    return process::Failure("unable to allocate requested # of cores");
   }
 
-  return process::Failure("unable to allocate requested # of cores");
+  return Nothing();
 }
 
 
@@ -120,7 +182,7 @@ process::Future<Nothing> CpusetIsolatorProcess::update(
   const mesos::Resources& resources)
 {
   if(containerResources.find(containerId) == containerResources.end()) {
-    containerResources.insert(make_pair(containerId, resources));
+    containerResources.insert(std::make_pair(containerId, resources));
   }
 
   return Nothing();
@@ -165,18 +227,18 @@ process::Future<Nothing> CpusetIsolatorProcess::_cleanup(
 Try<mesos::slave::Isolator*> CpusetIsolator::create(
     const mesos::Parameters& parameters)
 {
-  return new CpusetIsolator(process::Owned<CpusetIsolatorProcess>(
-      new CpusetIsolatorProcess(parameters)), true);
+  return new CpusetIsolator(
+     process::Owned<CpusetIsolatorProcess>(new CpusetIsolatorProcess(parameters)), 
+     true);
 }
 
 static bool compatible() {
   return true;
 }
 
-
 static mesos::slave::Isolator* createCpusetIsolator(const mesos::Parameters& parameters)
 {
-  Try<mesos::slave::Isolator* > cpusetIsolator = CpusetIsolator::create(parameters);
+  Try< mesos::slave::Isolator* > cpusetIsolator = CpusetIsolator::create(parameters);
 
   if (cpusetIsolator.isError()) {
     return NULL;
