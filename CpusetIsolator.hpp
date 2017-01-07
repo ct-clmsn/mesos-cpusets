@@ -62,9 +62,6 @@ class CpusetIsolatorProcess:
   public process::Process<CpusetIsolatorProcess>
 {
 public:
-  static Try<mesos::slave::Isolator*> create(
-      const mesos::Parameters& parameters);
-
   process::Future<Nothing> recover(
       const std::list<mesos::slave::ContainerState>& states,
       const hashset<mesos::ContainerID>& orphans);
@@ -93,15 +90,15 @@ public:
       const mesos::ContainerID& containerId);
 
 private:
-  CpusetIsolatorProcess(const mesos::Parameters& parameters_)
-    : parameters(parameters_) {}
-
   process::Future<Nothing> _cleanup(
       const mesos::ContainerID& containerId);
 
   const mesos::Parameters parameters;
   hashmap<mesos::ContainerID, mesos::Resources> containerResources;
   hashmap<mesos::ContainerID, pid_t> pids;
+
+  leveldb::DB* db;
+  process::TimeSeries<int> series;
 
 };
 
@@ -112,6 +109,9 @@ private:
 class CpusetIsolator : public mesos::slave::Isolator
 {
 public:
+  static Try<mesos::slave::Isolator*> create(
+      const mesos::Parameters& parameters);
+
   CpusetIsolator(process::Owned<CpusetIsolatorProcess> process_, bool activated_)
     : process(process_), 
       activated(activated_) {

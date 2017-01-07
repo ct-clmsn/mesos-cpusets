@@ -79,7 +79,7 @@ process::Future<Nothing> CpusetIsolatorProcess::isolate(
 
   const mesos::Resources r = containerResources[containerId];
   const double cpus = r.cpus().get();
-  //const double gpus = r.gpus().get();
+  const double gpus = r.gpus().get();
 
   create_cpuset_group(containerId.value());
 
@@ -156,58 +156,17 @@ process::Future<Nothing> CpusetIsolatorProcess::_cleanup(
     return Failure("Unknown container");
   }
 
-  //CHECK_NOTNULL(containerResources[containerId]);
-
-  /*if (!future.isReady()) {
-    return Failure(
-        "Failed to clean up container " + stringify(containerId) +
-        " : " + (future.isFailed() ? future.failure() : "discarded"));
-  }*/
-
   containerResources.erase(containerId);
   destroy_cpuset_group(containerId.value()).get();
 
-  //return future.onAny([]() { return Nothing(); });
   return Nothing();
 }
 
-Try<mesos::slave::Isolator*> CpusetIsolatorProcess::create(
+Try<mesos::slave::Isolator*> CpusetIsolator::create(
     const mesos::Parameters& parameters)
 {
   return new CpusetIsolator(process::Owned<CpusetIsolatorProcess>(
       new CpusetIsolatorProcess(parameters)), true);
-
-/*
-  vector<string> args{"cp", "-aT", layer, rootfs};
-
-  Try<Subprocess> s = subprocess(
-      "cp",
-      args,
-      Subprocess::PATH("/dev/null"),
-      Subprocess::PATH("/dev/null"),
-      Subprocess::PIPE());
-
-  if (s.isError()) {
-    return Failure("Failed to create 'cp' subprocess: " + s.error());
-  }
-
-  Subprocess cp = s.get();
-  pid_t pid = cp.pid();
-
-  return cp.status()
-    .then([cp](const Option<int>& status) -> process::Future<Nothing> {
-      if (status.isNone()) {
-        return Failure("Failed to reap subprocess to copy image");
-      } else if (status.get() != 0) {
-        return io::read(cp.err().get())
-          .then([](const string& err) -> process::Future<Nothing> {
-            return Failure("Failed to copy layer: " + err);
-          });
-      }
-
-      return Nothing();
-    });
-*/
 }
 
 static bool compatible() {
@@ -217,7 +176,7 @@ static bool compatible() {
 
 static mesos::slave::Isolator* createCpusetIsolator(const mesos::Parameters& parameters)
 {
-  Try<mesos::slave::Isolator* > cpusetIsolator = CpusetIsolatorProcess::create(parameters);
+  Try<mesos::slave::Isolator* > cpusetIsolator = CpusetIsolator::create(parameters);
 
   if (cpusetIsolator.isError()) {
     return NULL;
