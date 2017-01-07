@@ -30,6 +30,7 @@
 #include <process/future.hpp>
 #include <process/owned.hpp>
 #include <process/process.hpp>
+#include <process/timeseries.hpp>
 
 #include <stout/try.hpp>
 #include <stout/option.hpp>
