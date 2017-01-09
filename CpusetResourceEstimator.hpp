@@ -42,7 +42,7 @@ public:
     leveldb::Options options;
     options.create_if_missing = true;
 
-    leveldb::Status status = leveldb::DB::Open(options, dbpathstr, &db);
+    leveldb::Status status = leveldb::DB::Open(options, path::join(dbpathstr, "cpusetiso.db"), &db);
     if(!status.ok()) {
       perror("error opening leveldb");
       exit(-1);
