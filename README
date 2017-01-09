@@ -68,5 +68,9 @@ Dependencies
 
 ---
 
-The CpusetResourceEstimator module requires leveldb
+The CpusetIsolator and CpusetResourceEstimator module 
+require leveldb. CpusetIsolator stores historical
+data as a TimeSeries object and caches that information
+into a leveldb database which the CpusetResourceEstimator
+uses for poisson modeling.
 
