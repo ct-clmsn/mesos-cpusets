@@ -19,12 +19,53 @@
 
 #include "CpusetIsolator.hpp"
 
+#include <leveldb/write_batch.h>
+#include <string>
+
 using namespace process;
+
+static Result<process::Time> getCurrentTime(const double timewindow) {
+  const Time now = Clock::now();
+  const Duration dnow = now.duration();
+  const double mins = ((dnow.mins() / timewindow) * timewindow);
+
+  // compute user-defined window
+  //
+  Try<process::Time> tnowsec = process::Time::create(dnow.secs());
+  if(tnowsec.isError()) {
+    return Result<process::Time>::error("invalid time");
+  }
+
+  // see if timeseries has a sample of nowsec sample
+  //
+  const process::Time nowsec = tnowsec.get();
+  return nowsec;
+}
 
 CpusetIsolatorProcess::CpusetIsolatorProcess(
   const mesos::Parameters& parameters) 
   : params(parameters) 
 {
+  Option<std::string> odbpath;
+  Option<std::string> otw;
+
+  for(const mesos::Parameter& p : parameters.parameter()) {
+    if(p.has_key() && (p.key() == "cpusetdbpath") && p.has_value()) {
+      odbpath = p.value();
+    }
+    else if(p.has_key() && (p.key() == "samplewindow") && p.has_value()) {
+      otw = p.value();
+    }
+  }
+
+  const std::string dbpath = (odbpath.isSome()) ? odbpath.get() : os::getcwd();
+  if(otw.isNone()) {
+    perror("sample window not provided");
+    exit(-1);
+  }
+
+  timewindow = std::stod(otw.get());
+ 
   leveldb::Options opts;
   opts.create_if_missing = true;
   leveldb::Status stat = leveldb::DB::Open(opts, path::join(dbpath, "cpusetiso.db"), &db);
@@ -38,7 +79,7 @@ CpusetIsolatorProcess::CpusetIsolatorProcess(
   stat = db->Get(leveldb::ReadOptions(), "startDtg", &value);
 
   if(!stat.ok()) {
-    const process::Time cur_dtg = getCurrentTime();
+    const process::Time cur_dtg = getCurrentTime(timewindow).get();
     stat = db->Put(leveldb::WriteOptions(), "startDtg", stringify(cur_dtg));
   }
 
@@ -84,28 +125,10 @@ process::Future<Option<mesos::slave::ContainerPrepareInfo>> CpusetIsolatorProces
 
 }
 
-static process::Time getCurrentTime() {
-  const Time now = Clock::now();
-  const Duration dnow = now.duration();
-  const double mins = ((dnow.mins() / timewindow.mins()) * timewindow.mins());
-
-  // compute user-defined window
-  //
-  Try<process::Time> tnowsec = process::Time::create(dnow.secs());
-  if(tnowsec.isError()) {
-    return process::Failure("invalid time");
-  }
-
-  // see if timeseries has a sample of nowsec sample
-  //
-  const process::Time nowsec = tnowsec.get();
-  return nowsec;
-}
-
 Result<Nothing> CpusetIsolatorProcess::updateDb(const int cpusreq) {
   // see if timeseries has a sample of nowsec sample
   //
-  const process::Time nowsec = getCurrentTime();
+  const process::Time nowsec = getCurrentTime(timewindow).get();
   series.set(cpusreq, nowsec);
 
   JSON::Array arr;
@@ -122,7 +145,7 @@ Result<Nothing> CpusetIsolatorProcess::updateDb(const int cpusreq) {
     return Result<Nothing>::error("failed to write to leveldb");
   }
 
-  return Result<Nothing>::some(Nothing);
+  return Result<Nothing>::some(Nothing());
 }
 
 process::Future<Nothing> CpusetIsolatorProcess::isolate(
@@ -130,16 +153,17 @@ process::Future<Nothing> CpusetIsolatorProcess::isolate(
   pid_t pid)
 {
   if(!pids.contains(containerId)) {
-    return Failure("Unknown container");
+    return process::Failure("Unknown container");
   }
 
   if(!containerResources.contains(containerId)) {
-    return Failure("Unknown container resources");
+    return process::Failure("Unknown container resources");
   }
 
   const mesos::Resources r = containerResources[containerId];
   const double cpus = r.cpus().get();
-  const double gpus = r.gpus().get();
+  //const double gpus = r.gpus().get();
+  const double gpus = 0.0;
 
   updateDb(cpus);
 

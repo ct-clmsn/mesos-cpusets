@@ -4,7 +4,6 @@ MESOS_INC_PATH=-I$(MESOS_BASE_PATH)/3rdparty/libprocess/include/ -I$(MESOS_BASE_
 
 CC=g++
 CFLAGS=$(LIBMESOS_PATH) $(MESOS_INC_PATH) -std=c++0x 
-#-lmesos -lhwloc -fpic
 
 all:
 	$(CC) $(CFLAGS) -fPIC -c cgroupcpusets.cpp
@@ -13,12 +12,17 @@ all:
 	$(CC) $(CFLAGS) -fPIC -c TopologyResourceInformation.cpp
 	$(CC) $(CFLAGS) -fPIC -c CpusetAssigner.cpp 
 	$(CC) $(CFLAGS) -fPIC -c CpusetIsolator.cpp
-	$(CC) $(CFLAGS) -fPIC cgroupcpusets.o HwlocTopology.o TopologyResourceInformation.o CpusetAssigner.o CpusetIsolator.o -shared -o libCpusetIsolator.so 
+	$(CC) $(CFLAGS) -fPIC cgroupcpusets.o HwlocTopology.o TopologyResourceInformation.o CpusetAssigner.o CpusetIsolator.o -shared -o libCpusetIsolatorModule.so -lleveldb -lhwloc -lmesos
+	$(CC) $(CFLAGS) -fPIC -c CpusetResourceEstimator.cpp
+	$(CC) $(CFLAGS) -fPIC -c CpusetResourceEstimatorModule.cpp
+	$(CC) $(CFLAGS) -fPIC cgroupcpusets.o HwlocTopology.o TopologyResourceInformation.o CpusetResourceEstimator.o CpusetResourceEstimatorModule.o -shared -o libCpusetResourceEstimatorModule.so -lleveldb -lhwloc -lmesos
+
 
 subtest:
 	$(CC) $(CFLAGS) -g submodularscheduler-test.cpp -o submodularscheduler_test
 
 clean:
-	rm cgroupcpusets.o HwlocTopology.o TopologyResourceInformation.o CpusetAssigner.o CpusetIsolator.o libCpusetIsolator.so
+	rm cgroupcpusets.o HwlocTopology.o TopologyResourceInformation.o CpusetAssigner.o CpusetIsolator.o libCpusetIsolatorModule.so
+	rm CpusetResourceEstimator.o CpusetResourceEstimatorModule.o libCpusetResourceEstimatorModule.so
 	rm cgroupcpusets_main submodularscheduler_test
 

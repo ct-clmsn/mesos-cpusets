@@ -30,7 +30,7 @@ struct TestPolicy {
     cpu_weights = 0.0;
 
     for(int i = 0; i < cpu_cost.size(); i++) {
-      cpu_weights[i] = cpu_cost[i]/PU;
+      cpu_weights[i] = cpu_cost[i]; //PU;
     }
 
     return cpu_weights;
@@ -38,7 +38,7 @@ struct TestPolicy {
 
   const float PU = 2.0;
 
-  std::valarray<float> cpu_cost = { 1.0, 2.0, 1.0, 1.0 };
+  std::valarray<float> cpu_cost = { 1.0, 1.0, 1.0, 1.0 };
 
   std::valarray<float> cpu_weights;
 

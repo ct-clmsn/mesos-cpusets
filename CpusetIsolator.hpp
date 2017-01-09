@@ -15,7 +15,7 @@
 // limitations under the License.
 
 #ifndef __CPUISOLATOR_HPP__
-#define __CPUISOLATOR_HPP__
+#define __CPUISOLATOR_HPP__ 1
 
 #include <sys/types.h>
 
@@ -32,10 +32,8 @@
 #include <process/process.hpp>
 #include <process/timeseries.hpp>
 
+#include <stout/nothing.hpp>
 #include <stout/try.hpp>
-#include <stout/option.hpp>
-
-#include <stout/hashmap.hpp>
 #include <stout/option.hpp>
 
 #include "slave/flags.hpp"
@@ -46,9 +44,6 @@
 
 #include <mesos/mesos.hpp>
 #include <mesos/module.hpp>
-
-#include <stout/nothing.hpp>
-#include <stout/try.hpp>
 
 #include <leveldb/db.h>
 
@@ -105,6 +100,7 @@ private:
   hashmap<mesos::ContainerID, mesos::Resources> containerResources;
   hashmap<mesos::ContainerID, pid_t> pids;
 
+  double timewindow;
   process::TimeSeries<int> series;
   leveldb::DB* db;
 

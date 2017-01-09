@@ -9,7 +9,7 @@ int main(int argc, char** argv) {
   std::set<int> cpusets;
 
   SubmodularScheduler<TestPolicy> scheduler;
-  scheduler(cpusets, 2.0);
+  scheduler(cpusets, 4.0);
 
   std::for_each(std::begin(cpusets), std::end(cpusets),
     [](int cpu) {
