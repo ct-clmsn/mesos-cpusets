@@ -210,7 +210,7 @@ public:
     // successfully assigned the est cpuset required
     //
     if(est_cpuset_avail == req_core_est) {
-      Try<mesos::Resource> t_toret = mesos::Resources::parse("core", stringify(est_cpuset_avail), "*");
+      Try<mesos::Resource> t_toret = mesos::Resources::parse("cpu-cores", stringify(est_cpuset_avail), "*");
       mesos::Resources toret;
       toret += (t_toret.isError()) ? mesos::Resource() : t_toret.get();
       return toret;
