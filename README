@@ -56,3 +56,7 @@ Future work/support plan
 implement a small set of scheduling algorithms that 
 can support a variety of workloads.
 
+Dependencies
+
+The CpusetResourceEstimator module requires leveldb
+
