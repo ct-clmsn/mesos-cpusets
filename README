@@ -44,6 +44,8 @@ and cpu-constrained.
 
 Note - buyer beware!
 
+---
+
 This isolator may not be suitable for general purpose
 Mesos utilization.
 
@@ -56,10 +58,15 @@ a poisson model to guess cpuset requests.
 
 Future work/support plan
 
-implement a small set of scheduling algorithms that 
+---
+
+Implement a small set of scheduling algorithms that 
 can support a variety of workloads.
 
+
 Dependencies
+
+---
 
 The CpusetResourceEstimator module requires leveldb
 
