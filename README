@@ -51,6 +51,9 @@ This isolator may be suitable for heterogeneous cloud
 environments in which some nodes have gpu resources or
 large core counts.
 
+This isolator includes a resource estimator which uses
+a poisson model to guess cpuset requests. 
+
 Future work/support plan
 
 implement a small set of scheduling algorithms that 
